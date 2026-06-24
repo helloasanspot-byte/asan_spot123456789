@@ -29,23 +29,31 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // تایید امنیت سمت سرور با گرفتن اطلاعات کاربر فعال
+  // دریافت اطلاعات کاربر فعال جهت بررسی وضعیت احراز هویت
   const { data: { user } } = await supabase.auth.getUser()
-
   const currentPath = request.nextUrl.pathname
 
-  // 🟢 لیست سفید: صفحاتی که بدون لاگین برای همه باز هستند
-  const publicRoutes = ['/', '/services', '/about', '/contact']
+  // 🟢 ۱. ریدایرکت مستقیم ورودی‌های اولیه سایت به صفحه دسته‌بندی‌ها
+  if (currentPath === '/') {
+    return NextResponse.redirect(new URL('/categories', request.url))
+  }
+
+  // لیست سفید: صفحاتی که بدون لاگین برای همه باز هستند
+  const publicRoutes = ['/categories', '/about', '/contact']
+  
+  // 🟢 مجاز کردن صفحات داینامیک مشخصات محصول (مثل categories/ai-tools/) قبل از لاگین
+  const isDynamicCategoryRoute = currentPath.startsWith('/categories/')
   
   // مسیرهای مربوط به احراز هویت
   const isAuthRoute = currentPath === '/user/login' || currentPath === '/user/signup'
 
-  // 🔒 سناریو اول: کاربر لاگین نکرده و می‌خواهد به صفحه‌ای غیر از صفحات مجاز برود
-  if (!user && !publicRoutes.includes(currentPath) && !isAuthRoute) {
+  // 🔒 سناریو اول: کاربر لاگین نکرده و می‌خواهد به صفحات خصوصی برود
+  // شرط جدید (isDynamicCategoryRoute!) مانع از ریدایرکت صفحات مشخصات محصول به صفحه لاگین می‌شود
+  if (!user && !publicRoutes.includes(currentPath) && !isDynamicCategoryRoute && !isAuthRoute) {
     return NextResponse.redirect(new URL('/user/login', request.url))
   }
 
-  // 🔄 سناریو دوم: کاربر لاگین کرده ولی می‌خواهد دوباره به صفحه لاگین یا ثبت‌نام برود
+  // 🔄 سناریو دوم: کاربر لاگین کرده یا تازه ساین‌آپ شده و می‌خواهد به صفحه لاگین/ثبت‌نام برود
   if (user && isAuthRoute) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
@@ -54,8 +62,7 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // 🟢 این رگکس پیشرفته باعث می‌شود میدلویر روی تمام صفحات سایت اعمال شود، 
-  // اما فایل‌های استاتیک، تصاویر (مثل Logo.png و hesab.jpeg) و روت‌های API را فیلتر نکند تا سایت کرش نکند.
+  // فیلتر کردن فایل‌های استاتیک، تصاویر و مسیرهای API از پردازش میدلویر
   matcher: [
     '/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],

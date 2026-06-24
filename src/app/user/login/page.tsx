@@ -40,7 +40,7 @@ export default function LoginPage() {
   const [userProfile, setUserProfile] = useState<{ name: string; avatar: string } | null>(null)
   const [isSearchingProfile, setIsSearchingProfile] = useState(false)
 
-  // سیستم بررسی خودکار ایمیل در دیتابیس
+  // سیستم بررسی خودکار ایمیل از طریق API امنیتی
   useEffect(() => {
     if (!email.includes('@') || !email.includes('.')) {
       setUserProfile(null)
@@ -50,23 +50,27 @@ export default function LoginPage() {
     const fetchProfileByEmail = async () => {
       setIsSearchingProfile(true)
       try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('first_name, last_name, avatar_url')
-          .eq('email', email.trim().toLowerCase())
-          .maybeSingle()
+        // استفاده از API Route سرور برای دور زدن RLS به جای کوئری مستقیم سوپابیس
+        const res = await fetch('/api/profile-lookup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email.trim() })
+        })
+        
+        const data = await res.json()
 
-        if (data) {
-          const fullName = `${data.first_name || ''} ${data.last_name || ''}`.trim()
+        if (data.success && data.profile) {
+          const userName = data.profile.name || 'User'
           setUserProfile({
-            name: fullName || 'Welcome Back',
-            avatar: data.avatar_url || `https://ui-avatars.com/api/?name=${fullName || 'User'}&background=ffffff&color=4f46e5&bold=true`
+            name: userName !== 'User' ? userName : 'Welcome Back',
+            avatar: data.profile.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=ffffff&color=4f46e5&bold=true`
           })
         } else {
           setUserProfile(null)
         }
       } catch (err) {
-        console.error(err)
+        console.error("Profile lookup error:", err)
+        setUserProfile(null)
       } finally {
         setIsSearchingProfile(false)
       }

@@ -66,6 +66,11 @@ export default function Header() {
             Services
           </Link>
 
+          {/* لینک به صفحه جدید Categories */}
+          <Link href="/categories" className="px-5 py-2.5 rounded-full text-slate-700 hover:text-white hover:bg-blue-600 transition-all duration-300">
+            Categories
+          </Link>
+
           {/* لینک به صفحه جدید About */}
           <Link href="/dashboard/about" className="px-5 py-2.5 rounded-full text-slate-700 hover:text-white hover:bg-blue-600 transition-all duration-300">
             About
@@ -118,6 +123,9 @@ export default function Header() {
           
           <Link href="/services" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-700 font-extrabold text-lg hover:bg-blue-50 hover:text-blue-600 px-6 py-3 rounded-2xl transition-all">Services</Link>
           
+          {/* لینک دسته‌بندی در منوی موبایل */}
+          <Link href="/categories" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-700 font-extrabold text-lg hover:bg-blue-50 hover:text-blue-600 px-6 py-3 rounded-2xl transition-all">Categories</Link>
+
           <Link href="/dashboard/about" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-700 font-extrabold text-lg hover:bg-blue-50 hover:text-blue-600 px-6 py-3 rounded-2xl transition-all">About</Link>
           
           <Link href="/dashboard/contact" onClick={() => setIsMobileMenuOpen(false)} className="text-slate-700 font-extrabold text-lg hover:bg-blue-50 hover:text-blue-600 px-6 py-3 rounded-2xl transition-all">Contact</Link>
