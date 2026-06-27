@@ -8,7 +8,7 @@ import {
   Send, Layers, ArrowRight, Activity, Zap, CheckCircle2,
   Box, Share2, Gamepad2, Cpu, Sparkles
 } from 'lucide-react'
-import { supabase } from '../../../lib/supabase' // مسیر سوپابیس را چک کن
+import { supabase } from '../../../lib/supabase'
 
 // --- Custom SVGs ---
 const TiktokIcon = ({ className }: { className?: string }) => (
@@ -29,18 +29,18 @@ const getSectionStyle = (slug: string) => {
   return styles[slug] || { icon: Layers, colorClass: 'from-slate-600 to-slate-800', textColor: 'text-slate-600', bgLight: 'bg-slate-50', desc: 'Explore our premium operational clusters.' }
 }
 
-// استایل هوشمند برای پلتفرم‌ها (کارت‌های زیرمجموعه)
+// استایل هوشمند برای آیکون‌های Fallback و بک‌گراند کارت‌ها
 const getPlatformStyle = (slug: string) => {
   const styles: Record<string, any> = {
-    'instagram': { icon: Camera, colorClass: 'from-pink-500 to-rose-600', textColor: 'text-pink-600', bgGlow: 'bg-pink-500/10' },
-    'tiktok': { icon: TiktokIcon, colorClass: 'from-slate-800 to-slate-900', textColor: 'text-slate-900', bgGlow: 'bg-slate-900/5' },
-    'youtube': { icon: PlayCircle, colorClass: 'from-red-500 to-red-600', textColor: 'text-red-500', bgGlow: 'bg-red-500/10' },
-    'telegram': { icon: Send, colorClass: 'from-sky-400 to-blue-500', textColor: 'text-sky-500', bgGlow: 'bg-sky-500/10' },
-    'facebook': { icon: FacebookIcon, colorClass: 'from-blue-600 to-blue-800', textColor: 'text-blue-700', bgGlow: 'bg-blue-600/10' },
-    'twitter-x': { icon: Layers, colorClass: 'from-slate-700 to-slate-900', textColor: 'text-slate-800', bgGlow: 'bg-slate-700/10' },
-    'spotify': { icon: Activity, colorClass: 'from-green-500 to-emerald-600', textColor: 'text-green-600', bgGlow: 'bg-green-500/10' },
+    'instagram': { icon: Camera, colorClass: 'from-pink-500 to-rose-600', bgGlow: 'bg-pink-500/10' },
+    'tiktok': { icon: TiktokIcon, colorClass: 'from-slate-800 to-slate-900', bgGlow: 'bg-slate-900/5' },
+    'youtube': { icon: PlayCircle, colorClass: 'from-red-500 to-red-600', bgGlow: 'bg-red-500/10' },
+    'telegram': { icon: Send, colorClass: 'from-sky-400 to-blue-500', bgGlow: 'bg-sky-500/10' },
+    'facebook': { icon: FacebookIcon, colorClass: 'from-blue-600 to-blue-800', bgGlow: 'bg-blue-600/10' },
+    'twitter-x': { icon: Layers, colorClass: 'from-slate-700 to-slate-900', bgGlow: 'bg-slate-700/10' },
+    'spotify': { icon: Activity, colorClass: 'from-green-500 to-emerald-600', bgGlow: 'bg-green-500/10' },
   }
-  return styles[slug] || { icon: Box, colorClass: 'from-indigo-500 to-purple-600', textColor: 'text-indigo-600', bgGlow: 'bg-indigo-500/10' }
+  return styles[slug] || { icon: Box, colorClass: 'from-indigo-500 to-purple-600', bgGlow: 'bg-indigo-500/10' }
 }
 
 export default function CategoryDetailsPage() {
@@ -54,7 +54,6 @@ export default function CategoryDetailsPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // خواندن اطلاعات بخش (Section) و تمامی پلتفرم‌های متصل به آن
         const { data, error } = await supabase
           .from('smm_sections')
           .select(`
@@ -67,8 +66,10 @@ export default function CategoryDetailsPage() {
 
         if (data && !error) {
           setSectionData(data)
-          // فیلتر کردن پلتفرم‌های فعال
-          const activePlatforms = (data.smm_platforms || []).filter((p: any) => p.is_active)
+          // مرتب‌سازی پلتفرم‌های فعال بر اساس نام
+          const activePlatforms = (data.smm_platforms || [])
+            .filter((p: any) => p.is_active)
+            .sort((a: any, b: any) => a.name.localeCompare(b.name))
           setPlatforms(activePlatforms)
         }
       } catch (err) {
@@ -159,27 +160,39 @@ export default function CategoryDetailsPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {platforms.map((platform) => {
                 const style = getPlatformStyle(platform.slug)
-                const Icon = style.icon
+                const FallbackIcon = style.icon
 
                 return (
                   <div 
                     key={platform.id}
                     className="group bg-white rounded-[2rem] p-6 border border-blue-50 shadow-sm hover:shadow-[0_20px_40px_-10px_rgba(37,99,235,0.1)] hover:-translate-y-1 transition-all duration-300 relative overflow-hidden flex flex-col justify-between"
                   >
-                    <div className={`absolute top-0 right-0 w-24 h-24 rounded-bl-[80px] ${style.bgGlow} -z-10`} />
+                    <div className={`absolute top-0 right-0 w-24 h-24 rounded-bl-[80px] ${style.bgGlow} -z-10 transition-transform duration-500 group-hover:scale-110`} />
                     
                     <div>
-                      <div className="flex items-center gap-4 mb-4">
-                        <div className={`w-12 h-12 shrink-0 bg-gradient-to-tr ${style.colorClass} text-white rounded-xl flex items-center justify-center shadow-md`}>
-                          {platform.image_url ? (
-                            <img src={platform.image_url} alt={platform.name} className="w-6 h-6 object-contain filter brightness-0 invert" />
-                          ) : (
-                            <Icon className="w-5 h-5" />
-                          )}
-                        </div>
+                      <div className="flex items-center gap-4 mb-5">
+                        
+                        {/* 🟢 نمایش لوگوی دیتابیس بدون از بین بردن رنگ */}
+                        {platform.image_url ? (
+                          <div className="w-14 h-14 shrink-0 bg-slate-50/80 rounded-2xl flex items-center justify-center shadow-sm border border-slate-100 p-2.5">
+                            <img 
+                              src={platform.image_url} 
+                              alt={platform.name} 
+                              className="w-full h-full object-contain drop-shadow-sm" 
+                            />
+                          </div>
+                        ) : (
+                          <div className={`w-14 h-14 shrink-0 bg-gradient-to-tr ${style.colorClass} text-white rounded-2xl flex items-center justify-center shadow-md`}>
+                            <FallbackIcon className="w-6 h-6" />
+                          </div>
+                        )}
+
                         <div>
                           <h3 className="text-lg font-black text-slate-900">{platform.name}</h3>
-                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Active Server</p>
+                          <p className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest flex items-center gap-1 mt-0.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                            Active
+                          </p>
                         </div>
                       </div>
                       <p className="text-sm font-medium text-slate-500 mb-6 line-clamp-2">
@@ -189,7 +202,7 @@ export default function CategoryDetailsPage() {
 
                     <Link 
                       href={`/services?platform=${platform.slug}`}
-                      className="w-full flex items-center justify-center gap-2 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold py-3 rounded-xl text-xs uppercase tracking-wider transition-colors"
+                      className="w-full flex items-center justify-center gap-2 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold py-3.5 rounded-xl text-xs uppercase tracking-wider transition-colors border border-slate-200/60"
                     >
                       View Services <ArrowRight className="w-4 h-4" />
                     </Link>
@@ -201,7 +214,7 @@ export default function CategoryDetailsPage() {
         </div>
 
         {/* ================= CALL TO ACTION (CTA) ================= */}
-        <div className="bg-slate-900 rounded-[2.5rem] p-8 md:p-12 shadow-2xl relative overflow-hidden text-center">
+        <div className="bg-slate-900 rounded-[2.5rem] p-8 md:p-12 shadow-2xl relative overflow-hidden text-center mt-8">
           <div className={`absolute top-[-50%] right-[-10%] w-96 h-96 bg-gradient-to-tr ${sectionStyle.colorClass} rounded-full blur-[120px] opacity-30 pointer-events-none`} />
           
           <div className="relative z-10 max-w-2xl mx-auto">
@@ -213,13 +226,13 @@ export default function CategoryDetailsPage() {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link 
                 href="/user/signup"
-                className={`flex items-center justify-center gap-2 bg-gradient-to-r ${sectionStyle.colorClass} text-white font-black px-8 py-4.5 rounded-2xl text-sm uppercase tracking-wider transition-all duration-300 hover:scale-105 shadow-lg`}
+                className={`flex items-center justify-center gap-2 bg-gradient-to-r ${sectionStyle.colorClass} text-white font-black px-8 py-4 rounded-2xl text-sm uppercase tracking-wider transition-all duration-300 hover:scale-105 shadow-lg`}
               >
                 Create Account <ArrowRight className="w-5 h-5" />
               </Link>
               <Link 
                 href="/user/login"
-                className="flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white font-bold px-8 py-4.5 rounded-2xl text-sm uppercase tracking-wider transition-all duration-300 border border-white/10"
+                className="flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white font-bold px-8 py-4 rounded-2xl text-sm uppercase tracking-wider transition-all duration-300 border border-white/10"
               >
                 Sign In
               </Link>

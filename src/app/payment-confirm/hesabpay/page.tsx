@@ -25,7 +25,7 @@ function HesabPayCheckoutContent() {
   const [afnRate, setAfnRate] = useState<number>(68.5)
 
   // شماره حساب‌پی شما
-  const HESABPAY_NUMBER = "+93773449567"
+  const HESABPAY_NUMBER = "+93778894998"
 
   // دریافت نرخ ارز لایو
   useEffect(() => {

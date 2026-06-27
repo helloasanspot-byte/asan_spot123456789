@@ -25,7 +25,7 @@ function AtomaPayCheckoutContent() {
   const [afnRate, setAfnRate] = useState<number>(68.5)
 
   // آدرس ولت AtomaPay شما (این آدرس را به ولت اصلی خودت تغییر بده)
-  const ATOMAPAY_ADDRESS = "ATOMA-8X9B-7C6D-5E4F"
+  const ATOMAPAY_ADDRESS = "+93778894998"
 
   // دریافت نرخ ارز لایو
   useEffect(() => {
