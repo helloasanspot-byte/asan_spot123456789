@@ -7,7 +7,7 @@ export async function POST(req: Request) {
     const formData = await req.formData();
     const file = formData.get('receipt') as File;
     const orderId = formData.get('orderId') as string;
-    const gateway = formData.get('gateway') as string; // این مقدار از فرم AtomaPay فرستاده می‌شود
+    const gateway = (formData.get('gateway') as string) || 'AtomaPay';
 
     if (!file || !orderId) {
       return NextResponse.json({ error: 'اطلاعات ناقص است' }, { status: 400 });
@@ -19,7 +19,7 @@ export async function POST(req: Request) {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // ۳. آپلود رسید در باکت receipts سوپابیس
-    const fileExt = file.name.split('.').pop();
+    const fileExt = file.name.split('.').pop() || 'jpg';
     const fileName = `${gateway.toLowerCase()}-${orderId}-${Date.now()}.${fileExt}`;
     
     const { data: uploadData, error: uploadError } = await supabase.storage
@@ -75,43 +75,54 @@ export async function POST(req: Request) {
 • *User ID:* \`${orderData.user_id}\`
 
 🛒 *Order Details:*
+• *Order ID:* \`${orderData.id}\`
 • *Service Name:* ${orderData.smm_services?.name || 'Custom SMM Node'}
 • *Service ID:* \`${orderData.smm_services?.supplier_service_id || 'N/A'}\`
 • *Target Link:* ${orderData.link || 'N/A'}
 • *Quantity:* ${orderData.quantity?.toLocaleString()}
 • *Total Cost:* $${Number(orderData.total_cost).toFixed(3)}
-• *Payment Method:* ${gateway || 'AtomaPay'}
+• *Payment Method:* ${gateway}
+• *Submitted At:* ${new Date(orderData.created_at || Date.now()).toLocaleString('en-GB')}
 
-🌐 *Receipt Image:* [Click Here to View](${publicUrl})
+🌐 *Receipt Image:* [Open Receipt](${publicUrl})
 
 ⚠️ _Please verify the receipt to process the order._
     `;
 
     // ۷. ارسال لینک عکس و اطلاعات به ربات تلگرام
-    const tgResponse = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: TELEGRAM_CHAT_ID,
-        photo: publicUrl,
-        caption: caption,
-        parse_mode: 'Markdown'
-      }),
-    });
+    if (TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID) {
+      const tgResponse = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: TELEGRAM_CHAT_ID,
+          photo: publicUrl,
+          caption: caption,
+          parse_mode: 'Markdown'
+        }),
+      });
 
-    if (!tgResponse.ok) {
-      console.error("❌ Telegram Rejection:", await tgResponse.text());
+      if (!tgResponse.ok) {
+        console.error("❌ Telegram Rejection:", await tgResponse.text());
+      }
+    } else {
+      console.warn('⚠️ Telegram credentials are not configured. Receipt was uploaded but not sent.');
     }
 
-    // ۸. تغییر وضعیت سفارش در دیتابیس به در انتظار تایید
-    await supabase
+    // ۸. تغییر وضعیت سفارش در دیتابیس به در انتظار تایید و ثبت لینک رسید
+    const { error: updateError } = await supabase
       .from('smm_orders')
-      .update({ 
-        status: 'pending_verification'
+      .update({
+        status: 'pending_verification',
+        receipt_url: publicUrl
       })
       .eq('id', orderId);
 
-    console.log("✅ Success: AtomaPay details sent to Telegram!");
+    if (updateError) {
+      console.error('⚠️ Failed to persist receipt URL on order:', updateError);
+    }
+
+    console.log("✅ Success: AtomaPay payment proof saved and notification handled.");
     return NextResponse.json({ success: true });
 
   } catch (error: any) {

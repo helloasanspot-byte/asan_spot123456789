@@ -101,6 +101,35 @@ export default function CategoryDetailsPage() {
 
   const sectionStyle = getSectionStyle(sectionData.slug)
   const SectionIcon = sectionStyle.icon
+  const isAiToolsSection = sectionData.slug === 'ai-tools'
+
+  const aiOptions = [
+    {
+      name: 'ChatGPT',
+      slug: 'chatgpt',
+      description: 'Smart text generation, daily assistance, and professional conversations.',
+    },
+    {
+      name: 'Claude',
+      slug: 'claude',
+      description: 'Reliable AI support for deeper writing, analysis, and structured thinking.',
+    },
+    {
+      name: 'Gemini',
+      slug: 'gemini',
+      description: 'Creative AI tools for content creation, assistance, and modern workflows.',
+    },
+    {
+      name: 'Midjourney',
+      slug: 'midjourney',
+      description: 'High-quality image generation for branding, visuals, and creative projects.',
+    },
+    {
+      name: 'Grok',
+      slug: 'grok',
+      description: 'Fast AI responses for insights, ideas, and real-time creative support.',
+    },
+  ]
 
   return (
     <div className="min-h-screen bg-[#F0F6FF] py-12 px-6 relative overflow-hidden font-sans">
@@ -149,10 +178,37 @@ export default function CategoryDetailsPage() {
         {/* ================= PLATFORMS GRID ================= */}
         <div className="mb-12">
           <h2 className="text-2xl font-black text-slate-800 mb-6 flex items-center gap-2">
-            <Sparkles className="w-6 h-6 text-amber-500" /> Supported Platforms
+            <Sparkles className="w-6 h-6 text-amber-500" /> {isAiToolsSection ? 'Choose an AI Service' : 'Supported Platforms'}
           </h2>
-          
-          {platforms.length === 0 ? (
+
+          {isAiToolsSection ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {aiOptions.map((option) => (
+                <Link
+                  key={option.slug}
+                  href={`/services/${option.slug}`}
+                  className="group rounded-[2rem] border border-blue-100 bg-white p-7 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_45px_-15px_rgba(37,99,235,0.2)]"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="rounded-2xl bg-gradient-to-tr from-blue-500 to-indigo-600 p-3 text-white shadow-md">
+                      <BrainCircuit className="h-6 w-6" />
+                    </div>
+                    <div className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-600">
+                      Quick Select
+                    </div>
+                  </div>
+
+                  <h3 className="mt-5 text-xl font-black text-slate-900">{option.name}</h3>
+                  <p className="mt-2 text-sm leading-7 text-slate-600">{option.description}</p>
+
+                  <div className="mt-6 inline-flex items-center gap-2 font-semibold text-blue-600">
+                    Continue to Order
+                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                  </div>
+                </Link>
+              ))}
+            </div>
+          ) : platforms.length === 0 ? (
             <div className="bg-white p-8 rounded-[2rem] text-center border border-slate-100">
               <p className="text-slate-500 font-bold">No active platforms found in this sector.</p>
             </div>
