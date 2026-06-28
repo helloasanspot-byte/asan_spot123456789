@@ -40,16 +40,17 @@ export async function middleware(request: NextRequest) {
 
   // لیست سفید: صفحاتی که بدون لاگین برای همه باز هستند
   const publicRoutes = ['/categories', '/about', '/contact']
-  
-  // 🟢 مجاز کردن صفحات داینامیک مشخصات محصول (مثل categories/ai-tools/) قبل از لاگین
+
+  // 🟢 مجاز کردن صفحات داینامیک دسته‌بندی و صفحه تأیید پرداخت بدون لاگین
   const isDynamicCategoryRoute = currentPath.startsWith('/categories/')
-  
+  const isPaymentConfirmRoute = currentPath.startsWith('/payment-confirm')
+  const isPublicRoute = publicRoutes.includes(currentPath) || isDynamicCategoryRoute || isPaymentConfirmRoute
+
   // مسیرهای مربوط به احراز هویت
   const isAuthRoute = currentPath === '/user/login' || currentPath === '/user/signup'
 
   // 🔒 سناریو اول: کاربر لاگین نکرده و می‌خواهد به صفحات خصوصی برود
-  // شرط جدید (isDynamicCategoryRoute!) مانع از ریدایرکت صفحات مشخصات محصول به صفحه لاگین می‌شود
-  if (!user && !publicRoutes.includes(currentPath) && !isDynamicCategoryRoute && !isAuthRoute) {
+  if (!user && !isPublicRoute && !isAuthRoute) {
     return NextResponse.redirect(new URL('/user/login', request.url))
   }
 

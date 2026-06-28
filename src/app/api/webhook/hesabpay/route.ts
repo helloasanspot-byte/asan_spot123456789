@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { sendTelegramPhoto } from '../../../../lib/telegram';
 
 export async function POST(req: Request) {
   try {
@@ -89,23 +90,10 @@ export async function POST(req: Request) {
     `;
 
     // ۷. ارسال به تلگرام
-    if (TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID) {
-      const tgResponse = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: TELEGRAM_CHAT_ID,
-          photo: publicUrl,
-          caption: caption,
-          parse_mode: 'Markdown'
-        }),
-      });
-
-      if (!tgResponse.ok) {
-        console.error("❌ Telegram Rejection:", await tgResponse.text());
-      }
-    } else {
-      console.warn('⚠️ Telegram credentials are not configured. Receipt was uploaded but not sent.');
+    try {
+      await sendTelegramPhoto(publicUrl, caption)
+    } catch (err: any) {
+      console.error('❌ Telegram Sending Error:', err)
     }
 
     // ۸. آپدیت وضعیت سفارش در دیتابیس و ثبت لینک رسید

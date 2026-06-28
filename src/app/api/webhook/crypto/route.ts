@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
+import { sendTelegramMessage } from '../../../../lib/telegram';
 
 export async function POST(req: Request) {
   try {
@@ -31,55 +32,77 @@ export async function POST(req: Request) {
     }
 
     // ۴. بررسی وضعیت پرداخت
-    // status 'finished' یعنی پرداخت کاملاً در بلاک‌چین تایید شده است
-    if (body.payment_status === 'finished' || body.payment_status === 'completed') {
-      
-      const orderId = body.order_id;
+    const acceptedStatuses = ['finished', 'completed', 'confirmed', 'success']
+    if (acceptedStatuses.includes(String(body.payment_status).toLowerCase())) {
+      const orderId = body.order_id || body.orderId
+
+      if (!orderId) {
+        return NextResponse.json({ error: 'Order ID is required' }, { status: 400 })
+      }
 
       // ۵. اتصال به دیتابیس
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
       const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
       const supabase = createClient(supabaseUrl, supabaseKey);
 
-      // ۶. آپدیت سفارش به وضعیت اتوماتیک (processing یا completed)
-      await supabase
+      // ۶. آپدیت سفارش به وضعیت پردازش خودکار
+      const { error: updateError } = await supabase
         .from('smm_orders')
-        .update({ status: 'processing' }) // پردازش برای ارسال به فیم‌گروز
-        .eq('id', orderId);
-
-      // ۷. دریافت جزئیات سفارش برای تلگرام
-      const { data: orderData } = await supabase
-        .from('smm_orders')
-        .select('*, profiles(first_name)')
+        .update({ status: 'processing' })
         .eq('id', orderId)
-        .single();
 
-      // ۸. ارسال پیام به تلگرام شما
-      const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-      const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
+      if (updateError) {
+        console.error('❌ Crypto Order Update Error:', updateError)
+        return NextResponse.json({ error: 'Failed to update order status' }, { status: 500 })
+      }
 
+      // ۷. دریافت جزئیات سفارش و کاربر برای تلگرام
+      const { data: orderData, error: orderError } = await supabase
+        .from('smm_orders')
+        .select(`
+          *,
+          profiles(first_name, last_name),
+          smm_services(name, supplier_service_id)
+        `)
+        .eq('id', orderId)
+        .single()
+
+      let userEmail = 'No email'
+      let userPhone = 'No phone'
+      let fullName = 'Customer'
+
+      if (!orderError && orderData?.user_id) {
+        const { data: authData } = await supabase.auth.admin.getUserById(orderData.user_id)
+        userEmail = authData?.user?.email || 'No email'
+        userPhone = authData?.user?.phone || 'No phone'
+        fullName = `${orderData.profiles?.first_name || ''} ${orderData.profiles?.last_name || ''}`.trim() || 'Customer'
+      }
+
+      // ۸. ارسال پیام به تلگرام با جزئیات سفارش
       const message = `
-🚀 *AUTOMATED CRYPTO PAYMENT RECEIVED!* 🚀
+🚀 *AUTOMATED CRYPTO PAYMENT VERIFIED!* 🚀
 
-👤 *User:* ${orderData?.profiles?.first_name || 'Customer'}
-🪙 *Coin Used:* ${body.pay_currency.toUpperCase()}
-💰 *Amount Paid:* ${body.pay_amount} ${body.pay_currency.toUpperCase()} (~$${body.price_amount})
-🧾 *Order ID:* \`${orderId}\`
+👤 *Customer:* ${fullName}
+📧 *Email:* ${userEmail}
+📱 *Phone:* ${userPhone}
+🪙 *Coin Used:* ${String(body.pay_currency || 'crypto').toUpperCase()}
+💰 *Amount Paid:* ${body.pay_amount || body.price_amount} ${String(body.pay_currency || 'crypto').toUpperCase()}
+🛒 *Order ID:* \`${orderId}\`
+📦 *Service:* ${orderData?.smm_services?.name || 'N/A'}
+🔗 *Target Link:* ${orderData?.link || 'N/A'}
+📊 *Quantity:* ${orderData?.quantity?.toLocaleString() || 'N/A'}
+💵 *Total Cost:* $${Number(orderData?.total_cost || body.price_amount || 0).toFixed(3)}
 
 ✅ _Payment verified by blockchain. Order is now processing automatically._
       `;
 
-      await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: TELEGRAM_CHAT_ID,
-          text: message,
-          parse_mode: 'Markdown'
-        }),
-      });
+      try {
+        await sendTelegramMessage(message)
+      } catch (err: any) {
+        console.error('❌ Telegram Sending Error:', err)
+      }
 
-      console.log(`✅ Crypto Payment Verified for Order: ${orderId}`);
+      console.log(`✅ Crypto Payment Verified for Order: ${orderId}`)
     }
 
     return NextResponse.json({ success: true });
