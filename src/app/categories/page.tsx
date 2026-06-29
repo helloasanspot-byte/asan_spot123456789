@@ -54,6 +54,14 @@ const getSectionStyle = (slug: string) => {
       desc: 'Enhance your professional software tools, VPNs, and premium accounts.',
       isTable2: true
     },
+    'other': { 
+      icon: Box, 
+      colorClass: 'from-slate-500 to-slate-700', 
+      textColor: 'text-slate-600', 
+      bgGlow: 'bg-slate-500/10',
+      desc: 'Explore our premium various automated accounts and global streaming platforms.',
+      isTable2: true 
+    },
   }
 
   return styles[slug] || { 
@@ -109,9 +117,6 @@ export default function CategoriesPage() {
         
         {/* هدر صفحه */}
         <div className="mb-12 text-center">
-          <Link href="/" className="inline-flex items-center gap-2 text-sm font-bold text-blue-600 hover:text-blue-800 transition-colors mb-4 bg-white/50 px-4 py-2 rounded-xl backdrop-blur-sm shadow-sm border border-white">
-            <ArrowLeft className="w-4 h-4" /> Back to Home
-          </Link>
           <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight mb-4 uppercase flex items-center justify-center gap-3">
             <Layers className="w-8 h-8 text-blue-600 animate-pulse" /> Service <span className="text-blue-600">Sectors</span>
           </h1>
@@ -135,7 +140,7 @@ export default function CategoriesPage() {
                 ? (section.smm_platforms_2?.length || 0)
                 : (section.smm_platforms?.length || 0)
 
-              // حالا هدایت مستقیم به فولدرهای داخلی اختصاصی که در مسیر categories ساخته‌اید انجام می‌شود
+              // هدایت مستقیم به فولدرهای داخلی اختصاصی که در مسیر categories ساخته‌اید
               const targetPath = `/categories/${section.slug}`
 
               return (
