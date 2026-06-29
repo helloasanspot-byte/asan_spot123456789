@@ -1,14 +1,15 @@
 'use client'
 
 import { useSearchParams } from 'next/navigation'
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import Link from 'next/link'
 import { 
   ArrowLeft, MessageCircle, Globe, Camera, 
   Mail, Sparkles, ShieldCheck, Cpu
 } from 'lucide-react'
 
-export default function WhatsappOrderAiTools() {
+// ۱. بخش داخلی که از useSearchParams استفاده می‌کند
+function OrderContentAi() {
   const searchParams = useSearchParams()
   const serviceSlug = searchParams.get('service') || 'AI Service'
   const [lang, setLang] = useState<'fa' | 'en'>('fa')
@@ -53,8 +54,7 @@ export default function WhatsappOrderAiTools() {
   const t = content[lang]
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#E8F1FF] to-[#F8FAFC] py-12 px-6 relative overflow-hidden font-sans flex flex-col justify-center items-center">
-      
+    <>
       {/* هاله‌های نوری پس‌زمینه (تم آبی هوش مصنوعی) */}
       <div className="absolute top-[-10%] right-[-5%] w-[600px] h-[600px] bg-blue-500/20 blur-[150px] rounded-full pointer-events-none" />
       <div className="absolute bottom-[-10%] left-[-5%] w-[500px] h-[500px] bg-indigo-400/15 blur-[120px] rounded-full pointer-events-none" />
@@ -183,6 +183,17 @@ export default function WhatsappOrderAiTools() {
         </div>
 
       </div>
+    </>
+  )
+}
+
+// ۲. کامپوننت اصلی که به بیرون Export می‌شود
+export default function WhatsappOrderAiTools() {
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-[#E8F1FF] to-[#F8FAFC] py-12 px-6 relative overflow-hidden font-sans flex flex-col justify-center items-center">
+      <Suspense fallback={<div className="text-blue-600 font-bold animate-pulse">Loading Order Gateway...</div>}>
+        <OrderContentAi />
+      </Suspense>
     </div>
   )
 }

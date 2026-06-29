@@ -1,14 +1,15 @@
 'use client'
 
 import { useSearchParams } from 'next/navigation'
-import { useState } from 'react'
+import { useState, Suspense } from 'react' // Suspense اضافه شد
 import Link from 'next/link'
 import { 
   ArrowLeft, MessageCircle, Globe, Camera, 
   Mail, Sparkles, ShieldCheck, Layers
 } from 'lucide-react'
 
-export default function WhatsappOrderCreatorTools() {
+// ۱. قرار دادن تمام کدهای دارای useSearchParams داخل این کامپوننت داخلی
+function OrderContentCreator() {
   const searchParams = useSearchParams()
   const serviceSlug = searchParams.get('service') || 'Creator Tool'
   const [lang, setLang] = useState<'fa' | 'en'>('fa')
@@ -53,8 +54,7 @@ export default function WhatsappOrderCreatorTools() {
   const t = content[lang]
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#FFFBF2] to-[#F8FAFC] py-12 px-6 relative overflow-hidden font-sans flex flex-col justify-center items-center">
-      
+    <>
       {/* هاله‌های نوری پس‌زمینه (تم نارنجی/کهربایی مخصوص Creator Tools) */}
       <div className="absolute top-[-10%] right-[-5%] w-[600px] h-[600px] bg-orange-500/15 blur-[150px] rounded-full pointer-events-none" />
       <div className="absolute bottom-[-10%] left-[-5%] w-[500px] h-[500px] bg-amber-400/15 blur-[120px] rounded-full pointer-events-none" />
@@ -108,7 +108,7 @@ export default function WhatsappOrderCreatorTools() {
             </span>
           </div>
 
-          {/* دکمه اصلی اتصال به واتساپ (Ultra 3D Button - سبز رنگ برای حفظ هویت واتساپ) */}
+          {/* دکمه اصلی اتصال به واتساپ */}
           <a 
             href={whatsappUrl}
             target="_blank"
@@ -139,33 +139,17 @@ export default function WhatsappOrderCreatorTools() {
             </h3>
             
             <div className="grid grid-cols-3 gap-4 md:gap-6">
-              {/* دکمه 3D فیسبوک */}
-              <a 
-                href={facebookUrl} 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl bg-gradient-to-b from-white to-slate-50 border border-slate-200 text-slate-600 hover:text-blue-600 group shadow-[0_5px_0_#E2E8F0] active:shadow-[0_0px_0_#E2E8F0] active:translate-y-[5px] transition-all"
-              >
+              <a href={facebookUrl} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl bg-gradient-to-b from-white to-slate-50 border border-slate-200 text-slate-600 hover:text-blue-600 group shadow-[0_5px_0_#E2E8F0] active:shadow-[0_0px_0_#E2E8F0] active:translate-y-[5px] transition-all">
                 <Globe className="w-6 h-6 text-blue-500 group-hover:scale-110 transition-transform drop-shadow-sm" />
                 <span className="text-[11px] font-black">Facebook</span>
               </a>
 
-              {/* دکمه 3D اینستاگرام */}
-              <a 
-                href={instagramUrl} 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl bg-gradient-to-b from-white to-slate-50 border border-slate-200 text-slate-600 hover:text-pink-600 group shadow-[0_5px_0_#E2E8F0] active:shadow-[0_0px_0_#E2E8F0] active:translate-y-[5px] transition-all"
-              >
+              <a href={instagramUrl} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl bg-gradient-to-b from-white to-slate-50 border border-slate-200 text-slate-600 hover:text-pink-600 group shadow-[0_5px_0_#E2E8F0] active:shadow-[0_0px_0_#E2E8F0] active:translate-y-[5px] transition-all">
                 <Camera className="w-6 h-6 text-pink-500 group-hover:scale-110 transition-transform drop-shadow-sm" />
                 <span className="text-[11px] font-black">Instagram</span>
               </a>
 
-              {/* دکمه 3D ایمیل */}
-              <a 
-                href={`mailto:${emailAddress}`} 
-                className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl bg-gradient-to-b from-white to-slate-50 border border-slate-200 text-slate-600 hover:text-red-500 group shadow-[0_5px_0_#E2E8F0] active:shadow-[0_0px_0_#E2E8F0] active:translate-y-[5px] transition-all"
-              >
+              <a href={`mailto:${emailAddress}`} className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl bg-gradient-to-b from-white to-slate-50 border border-slate-200 text-slate-600 hover:text-red-500 group shadow-[0_5px_0_#E2E8F0] active:shadow-[0_0px_0_#E2E8F0] active:translate-y-[5px] transition-all">
                 <Mail className="w-6 h-6 text-red-500 group-hover:scale-110 transition-transform drop-shadow-sm" />
                 <span className="text-[11px] font-black">Email</span>
               </a>
@@ -183,6 +167,17 @@ export default function WhatsappOrderCreatorTools() {
         </div>
 
       </div>
+    </>
+  )
+}
+
+// ۲. کامپوننت اصلی که درون صفحه لود می‌شود و Suspense را اعمال می‌کند
+export default function WhatsappOrderCreatorTools() {
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-[#FFFBF2] to-[#F8FAFC] py-12 px-6 relative overflow-hidden font-sans flex flex-col justify-center items-center">
+      <Suspense fallback={<div className="text-orange-600 font-bold animate-pulse">Loading Studio...</div>}>
+        <OrderContentCreator />
+      </Suspense>
     </div>
   )
 }

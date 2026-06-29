@@ -1,14 +1,15 @@
 'use client'
 
 import { useSearchParams } from 'next/navigation'
-import { useState } from 'react'
+import { useState, Suspense } from 'react' // Suspense اضافه شد
 import Link from 'next/link'
 import { 
   ArrowLeft, MessageCircle, Globe, Camera, 
   Mail, Sparkles, ShieldCheck, Lock
 } from 'lucide-react'
 
-export default function WhatsappOrderSecurityVpn() {
+// ۱. بخش داخلی که شامل useSearchParams است
+function OrderContentSecurity() {
   const searchParams = useSearchParams()
   const serviceSlug = searchParams.get('service') || 'Security Node'
   const [lang, setLang] = useState<'fa' | 'en'>('fa')
@@ -53,8 +54,7 @@ export default function WhatsappOrderSecurityVpn() {
   const t = content[lang]
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#F0FDF4] to-[#F8FAFC] py-12 px-6 relative overflow-hidden font-sans flex flex-col justify-center items-center">
-      
+    <>
       {/* هاله‌های نوری پس‌زمینه (تم سبز زمردی مخصوص Security & VPN) */}
       <div className="absolute top-[-10%] right-[-5%] w-[600px] h-[600px] bg-emerald-500/15 blur-[150px] rounded-full pointer-events-none" />
       <div className="absolute bottom-[-10%] left-[-5%] w-[500px] h-[500px] bg-teal-400/15 blur-[120px] rounded-full pointer-events-none" />
@@ -183,6 +183,17 @@ export default function WhatsappOrderSecurityVpn() {
         </div>
 
       </div>
+    </>
+  )
+}
+
+// ۲. کامپوننت اصلی که به بیرون Export می‌شود (دارای Suspense)
+export default function WhatsappOrderSecurityVpn() {
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-[#F0FDF4] to-[#F8FAFC] py-12 px-6 relative overflow-hidden font-sans flex flex-col justify-center items-center">
+      <Suspense fallback={<div className="text-emerald-600 font-bold animate-pulse">Loading Security Gateway...</div>}>
+        <OrderContentSecurity />
+      </Suspense>
     </div>
   )
 }
