@@ -8,6 +8,7 @@ export async function middleware(request: NextRequest) {
     },
   })
 
+  // ۱. مدیریت کوکی‌های Supabase جهت حفظ وضعیت احراز هویت و امنیت کوکی‌ها
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -29,41 +30,26 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // دریافت اطلاعات کاربر فعال جهت بررسی وضعیت احراز هویت
-  const { data: { user } } = await supabase.auth.getUser()
   const currentPath = request.nextUrl.pathname
 
-  // 🟢 ۱. ریدایرکت مستقیم ورودی‌های اولیه سایت به صفحه دسته‌بندی‌ها
+  // 🟢 ۲. ریدایرکت مستقیم ورودی‌های اولیه سایت (/) به صفحه دسته‌بندی‌ها (/categories)
+  // این مورد برای تجربه کاربری بهتر حفظ شده است.
   if (currentPath === '/') {
     return NextResponse.redirect(new URL('/categories', request.url))
   }
 
-  // لیست سفید: صفحاتی که بدون لاگین برای همه باز هستند
-  const publicRoutes = ['/categories', '/about', '/contact']
+  // 🔴 ۳. حذف تمام شروط لاگین اجباری و ریدایرکت‌های مربوط به احراز هویت
+  // دیگر هیچ ریدایرکتی برای مسیرهای خصوصی یا AuthRoutes وجود ندارد.
+  // کاربران بدون لاگین می‌توانند به تمام صفحات دسترسی داشته باشند.
+  // لاگین و ساین‌آپ کاملاً اختیاری است و میدلویر دخالتی در دسترسی ندارد.
 
-  // 🟢 مجاز کردن صفحات داینامیک دسته‌بندی و صفحه تأیید پرداخت بدون لاگین
-  const isDynamicCategoryRoute = currentPath.startsWith('/categories/')
-  const isPaymentConfirmRoute = currentPath.startsWith('/payment-confirm')
-  const isPublicRoute = publicRoutes.includes(currentPath) || isDynamicCategoryRoute || isPaymentConfirmRoute
-
-  // مسیرهای مربوط به احراز هویت
-  const isAuthRoute = currentPath === '/user/login' || currentPath === '/user/signup'
-
-  // 🔒 سناریو اول: کاربر لاگین نکرده و می‌خواهد به صفحات خصوصی برود
-  if (!user && !isPublicRoute && !isAuthRoute) {
-    return NextResponse.redirect(new URL('/user/login', request.url))
-  }
-
-  // 🔄 سناریو دوم: کاربر لاگین کرده یا تازه ساین‌آپ شده و می‌خواهد به صفحه لاگین/ثبت‌نام برود
-  if (user && isAuthRoute) {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
-  }
-
+  // اجازه دادن به تمام درخواست‌ها برای عبور
   return response
 }
 
 export const config = {
   // فیلتر کردن فایل‌های استاتیک، تصاویر و مسیرهای API از پردازش میدلویر
+  // این تنظیمات عملکرد میدلویر را بهینه‌سازی می‌کند و نباید تغییر کند.
   matcher: [
     '/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],

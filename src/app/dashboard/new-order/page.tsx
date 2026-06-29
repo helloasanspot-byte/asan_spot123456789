@@ -5,7 +5,7 @@ import { supabase } from '../../../lib/supabase'
 import { 
   Loader2, Zap, DollarSign, Wallet, Link as LinkIcon, 
   Hash, ChevronDown, CheckCircle2, ArrowRight, Ticket, 
-  CreditCard, ExternalLink, Globe, Info, Bitcoin
+  Globe, Info, MessageCircle
 } from 'lucide-react'
 
 export default function LuxuryOneTimeServicesForm() {
@@ -38,9 +38,8 @@ export default function LuxuryOneTimeServicesForm() {
   // --- سیستم ارز زنده (USD to AFN) ---
   const [afnRate, setAfnRate] = useState<number>(68.5) // نرخ رزرو
 
-  // --- مدیریت بخش پرداخت ---
-  const [showPaymentGateways, setShowPaymentGateways] = useState(false)
-  const [selectedGateway, setSelectedGateway] = useState<string | null>(null)
+  const WHATSAPP_NUMBER = '17575055153'
+  const WHATSAPP_LINK = `https://wa.me/${WHATSAPP_NUMBER}`
 
   // ۱. دریافت نرخ ارز زنده از API جهانی
   useEffect(() => {
@@ -170,72 +169,11 @@ export default function LuxuryOneTimeServicesForm() {
     }
   }
 
-  // مدیریت فرآیند پرداخت
-  const handlePayment = async () => {
-    if (!selectedGateway || !isFormComplete) return;
+  const whatsappMessage = encodeURIComponent(
+    `Hello, I want to place an order.\n\nService: ${selectedService?.name || 'Unknown service'}\nPlatform: ${selectedPlatform?.name || 'Unknown platform'}\nQuantity: ${isFixedCharge ? 'Fixed package' : quantity}\nLink: ${link || 'Not provided'}\nTotal: $${totalCostUSD.toFixed(2)}\n\nPlease confirm the order and provide the next steps.`
+  )
 
-    setPaymentLoading(true);
-
-    try {
-      // ایجاد یک سفارش معلق (Pending) در دیتابیس خودمان ابتدا
-      const { data: userData } = await supabase.auth.getUser();
-      const userId = userData.user?.id;
-
-      if (!userId) {
-        alert("You must be logged in to place an order.");
-        setPaymentLoading(false);
-        return;
-      }
-
-      // 1. ثبت سفارش اولیه در دیتابیس خودمان با وضعیت pending
-      const { data: newOrder, error: orderError } = await supabase
-          .from('smm_orders')
-          .insert({
-            user_id: userId,
-            service_id: selectedServiceId,
-            link: link,
-            quantity: quantity,
-            total_cost: totalCostUSD,
-            status: 'pending_payment' 
-          })
-          .select()
-          .single();
-
-      if (orderError) throw orderError;
-
-      // 2. درخواست به درگاه پرداخت مربوطه
-      const checkoutEndpoint = `/api/checkout/${selectedGateway}`;
-      
-      const response = await fetch(checkoutEndpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          orderId: newOrder.id,
-          amountUSD: totalCostUSD,
-          amountAFN: totalCostAFN,
-          serviceName: selectedService?.name
-        })
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-         throw new Error(data.error || 'Failed to initialize payment gateway.');
-      }
-
-      // هدایت کاربر به لینک پرداخت درگاه
-      if (data.checkoutUrl) {
-          window.location.href = data.checkoutUrl;
-      } else {
-          throw new Error("No checkout URL received from gateway.");
-      }
-
-    } catch (error: any) {
-      console.error("Payment Initiation Error:", error);
-      alert(error.message || "An error occurred while connecting to the payment gateway.");
-      setPaymentLoading(false);
-    }
-  }
+  const whatsappUrl = `${WHATSAPP_LINK}?text=${whatsappMessage}`
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 pb-24 pt-12 relative overflow-hidden font-sans selection:bg-indigo-500/30">
@@ -459,114 +397,21 @@ export default function LuxuryOneTimeServicesForm() {
                 )}
               </div>
 
-              {/* دکمه بازکننده گیت‌وی‌های پرداخت */}
-              {isFormComplete && !showPaymentGateways && (
+              {isFormComplete && (
                 <div className="pt-4 animate-fade-in">
-                  <button
-                    type="button"
-                    onClick={() => setShowPaymentGateways(true)}
-                    className="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white font-black px-10 py-5 rounded-2xl transition-all duration-300 shadow-[0_10px_30px_-10px_rgba(79,70,229,0.5)] active:translate-y-0.5 cursor-pointer"
+                  <a
+                    href={whatsappUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-white font-black px-10 py-5 rounded-2xl transition-all duration-300 shadow-[0_10px_30px_-10px_rgba(16,185,129,0.45)] active:translate-y-0.5 cursor-pointer"
                   >
-                    <span className="text-sm uppercase tracking-widest">Choose Payment Method</span>
+                    <MessageCircle className="w-5 h-5" />
+                    <span className="text-sm uppercase tracking-widest">Send Order to WhatsApp</span>
                     <ArrowRight className="w-5 h-5" />
-                  </button>
-                </div>
-              )}
-
-              {/* ========================================= */}
-              {/* PAYMENT GATEWAY PANEL (درگاه‌های پرداخت)    */}
-              {/* ========================================= */}
-              {showPaymentGateways && isFormComplete && (
-                <div className="pt-6 border-t border-slate-100 space-y-4 animate-fade-in-up">
-                  <label className="block text-[11px] font-black tracking-widest text-slate-400 uppercase">
-                    6. SELECT INTEGRATED PAYMENT NODES
-                  </label>
-                  
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    
-                    {/* 1. Crypto (NowPayments) - NEW! */}
-                    <button
-                      type="button"
-                      onClick={() => setSelectedGateway('crypto')}
-                      className={`border p-5 rounded-2xl flex items-center gap-3 text-left transition-all cursor-pointer w-full ${
-                        selectedGateway === 'crypto'
-                          ? 'border-indigo-600 bg-indigo-50/30 ring-2 ring-indigo-500/10'
-                          : 'border-slate-200/80 hover:border-slate-300 bg-white'
-                      }`}
-                    >
-                      <div className="p-3 bg-amber-50 text-amber-500 rounded-xl font-black text-xs border border-amber-100">
-                        <Bitcoin className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-black text-slate-900">Crypto Assets</p>
-                        <p className="text-[10px] font-bold text-slate-400">USDT, BTC via NowPayments</p>
-                      </div>
-                    </button>
-
-                    {/* 2. HesabPay */}
-                    <button
-                      type="button"
-                      onClick={() => setSelectedGateway('hesabpay')}
-                      className={`border p-5 rounded-2xl flex items-center gap-3 text-left transition-all cursor-pointer w-full ${
-                        selectedGateway === 'hesabpay'
-                          ? 'border-indigo-600 bg-indigo-50/30 ring-2 ring-indigo-500/10'
-                          : 'border-slate-200/80 hover:border-slate-300 bg-white'
-                      }`}
-                    >
-                      <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl font-black text-xs border border-emerald-100">HP</div>
-                      <div>
-                        <p className="text-sm font-black text-slate-900">HesabPay Afghanistan</p>
-                        <p className="text-[10px] font-bold text-slate-400">Instant mobile wallet routing</p>
-                      </div>
-                    </button>
-
-                    {/* 3. AtomaPay */}
-                    <button
-                      type="button"
-                      onClick={() => setSelectedGateway('atomapay')}
-                      className={`border p-5 rounded-2xl flex items-center gap-3 text-left transition-all cursor-pointer w-full ${
-                        selectedGateway === 'atomapay'
-                          ? 'border-indigo-600 bg-indigo-50/30 ring-2 ring-indigo-500/10'
-                          : 'border-slate-200/80 hover:border-slate-300 bg-white'
-                      }`}
-                    >
-                      <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl font-black text-xs border border-indigo-100">AP</div>
-                      <div>
-                        <p className="text-sm font-black text-slate-900">AtomaPay Gateway</p>
-                        <p className="text-[10px] font-bold text-slate-400">Premium decentralized infra</p>
-                      </div>
-                    </button>
-
-                    {/* 4. PayPal (Disabled) */}
-                    <div className="border border-slate-200 rounded-2xl p-5 flex items-center justify-between opacity-50 bg-slate-50 cursor-not-allowed">
-                      <div className="flex items-center gap-3">
-                        <div className="p-3 bg-slate-200 text-slate-500 rounded-xl">
-                          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M7 15h4.5a3.5 3.5 0 0 0 0-7H7v7Z"></path><path d="M12 15h4.5a3.5 3.5 0 0 0 0-7H12v7Z"></path></svg>
-                        </div>
-                        <div>
-                          <p className="text-sm font-black text-slate-800">PayPal Checkout</p>
-                          <p className="text-[10px] font-bold text-slate-400">Global fiat routing</p>
-                        </div>
-                      </div>
-                      <span className="text-[9px] font-black bg-slate-300 text-slate-600 px-2 py-0.5 rounded-md uppercase">Soon</span>
-                    </div>
-
-                  </div>
-
-                  {selectedGateway && (
-                    <button
-                      type="button"
-                      onClick={handlePayment}
-                      disabled={paymentLoading}
-                      className="w-full mt-4 flex items-center justify-center gap-2 bg-slate-900 hover:bg-indigo-600 text-white font-black py-4.5 rounded-2xl text-sm uppercase tracking-wider transition-all duration-300 shadow-md active:translate-y-0.5 cursor-pointer disabled:opacity-50"
-                    >
-                      {paymentLoading ? (
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                      ) : (
-                        <>Execute Secure Transaction <ExternalLink className="w-4 h-4" /></>
-                      )}
-                    </button>
-                  )}
+                  </a>
+                  <p className="mt-3 text-center text-xs font-semibold text-slate-500">
+                    After sending the message, our team will confirm your order on WhatsApp.
+                  </p>
                 </div>
               )}
 
