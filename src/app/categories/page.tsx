@@ -8,44 +8,61 @@ import {
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 
-// استایل‌های هوشمند بر اساس Slug بخش‌ها (Sections)
+// استایل‌ها و تنظیمات هوشمند منطبق بر Slug پوشه‌های جدید شما
 const getSectionStyle = (slug: string) => {
   const styles: Record<string, any> = {
-    'social-media': { 
+    // --- بخش‌های مربوط به جدول smm_platforms ---
+    'social-media-services': { 
       icon: Share2, 
       colorClass: 'from-pink-500 to-rose-600', 
       textColor: 'text-pink-600', 
       bgGlow: 'bg-pink-500/10',
-      desc: 'Boost your social presence across top networks like Instagram, TikTok, and Twitter.'
+      desc: 'Boost your social presence across top networks like Instagram, TikTok, and Twitter.',
+      isTable2: false 
     },
+    'entertainment': { 
+      icon: Gamepad2, 
+      colorClass: 'from-purple-500 to-fuchsia-600', 
+      textColor: 'text-purple-600', 
+      bgGlow: 'bg-purple-500/10',
+      desc: 'Maximize streams, views, and gaming influence on YouTube, Twitch, and Spotify.',
+      isTable2: false
+    },
+
+    // --- بخش‌های مربوط به جدول smm_platforms_2 ---
     'ai-tools': { 
       icon: BrainCircuit, 
       colorClass: 'from-blue-500 to-indigo-600', 
       textColor: 'text-blue-600', 
       bgGlow: 'bg-blue-500/10',
-      desc: 'Deploy advanced artificial intelligence nodes and automate your digital workflows.'
+      desc: 'Deploy advanced artificial intelligence nodes and automate your digital workflows.',
+      isTable2: true 
     },
-    'entertainment-games': { 
-      icon: Gamepad2, 
-      colorClass: 'from-purple-500 to-fuchsia-600', 
-      textColor: 'text-purple-600', 
-      bgGlow: 'bg-purple-500/10',
-      desc: 'Maximize streams, views, and gaming influence on YouTube, Twitch, and Spotify.'
+    'creator-tools': { 
+      icon: Layers, 
+      colorClass: 'from-amber-500 to-orange-600', 
+      textColor: 'text-amber-600', 
+      bgGlow: 'bg-amber-500/10',
+      desc: 'Empower your content creation workflow with intelligent video and image editors.',
+      isTable2: true
     },
-    'software-services': { 
+    'security-vpn': { 
       icon: Cpu, 
       colorClass: 'from-emerald-500 to-teal-600', 
       textColor: 'text-emerald-600', 
       bgGlow: 'bg-emerald-500/10',
-      desc: 'Enhance your professional software tools, VPNs, and premium accounts.'
+      desc: 'Enhance your professional software tools, VPNs, and premium accounts.',
+      isTable2: true
     },
   }
+
   return styles[slug] || { 
     icon: Box, 
     colorClass: 'from-slate-600 to-slate-800', 
     textColor: 'text-slate-600', 
     bgGlow: 'bg-slate-500/10',
-    desc: 'Explore our premium automated services and operational clusters.'
+    desc: 'Explore our premium automated services and operational clusters.',
+    isTable2: false
   }
 }
 
@@ -56,7 +73,7 @@ export default function CategoriesPage() {
   useEffect(() => {
     const fetchSections = async () => {
       try {
-        // خواندن بخش‌های اصلی و شمارش اتوماتیک پلتفرم‌های زیرمجموعه آن‌ها
+        // خواندن هم‌زمان بخش‌ها همراه با شمارش پلتفرم‌ها برای نمایش روی کارت‌ها
         const { data, error } = await supabase
           .from('smm_sections')
           .select(`
@@ -64,7 +81,8 @@ export default function CategoriesPage() {
             name, 
             slug, 
             is_active,
-            smm_platforms ( id )
+            smm_platforms ( id ),
+            smm_platforms_2 ( id )
           `)
           .eq('is_active', true)
         
@@ -111,24 +129,30 @@ export default function CategoriesPage() {
             {sections.map((section: any) => {
               const style = getSectionStyle(section.slug)
               const Icon = style.icon
-              const platformsCount = section.smm_platforms?.length || 0
+
+              // مچ کردن تعداد کانکشن‌ها بر اساس جدول درست دیتابیس برای نمایش دقیق دیتا
+              const platformsCount = style.isTable2 
+                ? (section.smm_platforms_2?.length || 0)
+                : (section.smm_platforms?.length || 0)
+
+              // حالا هدایت مستقیم به فولدرهای داخلی اختصاصی که در مسیر categories ساخته‌اید انجام می‌شود
+              const targetPath = `/categories/${section.slug}`
 
               return (
                 <div 
                   key={section.id}
                   className="group bg-white rounded-[2.5rem] p-8 md:p-10 border border-blue-50/50 shadow-[0_15px_40px_-15px_rgba(37,99,235,0.04)] hover:shadow-[0_30px_60px_-15px_rgba(37,99,235,0.12)] hover:-translate-y-1.5 transition-all duration-500 flex flex-col justify-between relative overflow-hidden"
                 >
-                  {/* هاله نوری پشت آیکون هنگام هاور */}
                   <div className={`absolute top-0 right-0 w-48 h-48 rounded-bl-[120px] ${style.bgGlow} -z-10 transition-transform duration-700 group-hover:scale-125`} />
 
                   <div>
-                    {/* بخش بالایی کارت همراه با تصویر اصلی یا آیکون */}
+                    {/* بخش بالایی کارت */}
                     <div className="flex items-center justify-between mb-6">
                       <div className={`w-16 h-16 bg-gradient-to-tr ${style.colorClass} text-white rounded-3xl flex items-center justify-center shadow-lg transition-transform group-hover:scale-105`}>
                         <Icon className="w-8 h-8" />
                       </div>
                       <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-100 ${style.textColor}`}>
-                        Premium Sector
+                        {style.isTable2 ? 'Core Service' : 'SMM Market'}
                       </span>
                     </div>
 
@@ -158,8 +182,9 @@ export default function CategoriesPage() {
                       </div>
                     </div>
 
+                    {/* لینک دهی مستقیم به صفحات مجزای شما */}
                     <Link 
-                      href={`/categories/${section.slug}`}
+                      href={targetPath}
                       className="w-full flex items-center justify-center gap-2 bg-slate-50 hover:bg-blue-600 text-slate-700 hover:text-white font-black py-4 rounded-xl text-sm uppercase tracking-wider transition-all duration-300 group-hover:shadow-md"
                     >
                       Explore {section.name} <ArrowRight className="w-5 h-5 group-hover:translate-x-1.5 transition-transform" />
@@ -175,7 +200,7 @@ export default function CategoriesPage() {
         {/* بخش راهنمایی پایین */}
         <div className="mt-12 bg-white rounded-3xl p-6 border border-blue-50 text-center shadow-sm">
           <p className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center justify-center gap-2">
-            <Sparkles className="w-4 h-4 text-amber-500" /> Fully synchronized with core database
+            <Sparkles className="w-4 h-4 text-amber-500" /> Fully synchronized with isolated sub-pages routing
           </p>
         </div>
 
